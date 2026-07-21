@@ -11,23 +11,48 @@ gsap.ticker.add((time) => {
 });
 gsap.ticker.lagSmoothing(0);
 
+// Mobile Hamburger Nav Toggle Logic
+const mobileNavToggle = document.getElementById("mobile-nav-toggle");
+const headerNav = document.querySelector(".header-nav");
+if (mobileNavToggle && headerNav) {
+  mobileNavToggle.addEventListener("click", () => {
+    headerNav.classList.toggle("nav-open");
+    const icon = mobileNavToggle.querySelector(".material-symbols-outlined");
+    if (icon) {
+      icon.textContent = headerNav.classList.contains("nav-open")
+        ? "close"
+        : "menu";
+    }
+  });
+
+  headerNav.querySelectorAll(".nav-link").forEach((link) => {
+    link.addEventListener("click", () => {
+      headerNav.classList.remove("nav-open");
+      const icon = mobileNavToggle.querySelector(".material-symbols-outlined");
+      if (icon) icon.textContent = "menu";
+    });
+  });
+}
+
 // Parallax scroll transitions for images inside our clean side-by-side rows
 gsap.utils.toArray(".img-wrapper").forEach((wrapper) => {
   const img = wrapper.querySelector("img");
-  gsap.fromTo(
-    img,
-    { y: "-12%" },
-    {
-      y: "12%",
-      ease: "none",
-      scrollTrigger: {
-        trigger: wrapper,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
+  if (img) {
+    gsap.fromTo(
+      img,
+      { y: "-12%" },
+      {
+        y: "12%",
+        ease: "none",
+        scrollTrigger: {
+          trigger: wrapper,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
       },
-    },
-  );
+    );
+  }
 });
 
 // Trigger typography visibility reveals for staggered visual presentation
@@ -119,7 +144,6 @@ function loadHDRI(url) {
       });
 
       currentHdriUrl = url;
-      //showNotification("HDRI Beleuchtung erfolgreich geladen!");
     },
     undefined,
     function (error) {
@@ -145,10 +169,8 @@ function fitModelToCamera(model) {
   const size = box.getSize(new THREE.Vector3());
   const maxDim = Math.max(size.x, size.y, size.z);
 
-  // --- ÄNDERUNG HIER ---
-  // Statt fixer '5' wird die Zielgröße anhand der Fensterbreite berechnet:
-  const baseWidth = 1920; // Deine Referenzbreite (z. B. Full HD)
-  const baseScaleFactor = 5; // Wunschgröße bei 1920px Breite
+  const baseWidth = 1920;
+  const baseScaleFactor = 5;
   const targetSize = (window.innerWidth / baseWidth) * baseScaleFactor;
 
   const scale = targetSize / maxDim;
@@ -228,7 +250,6 @@ function setupScrollAnimations() {
     },
   });
 
-  // Rotation animation matching scroll progression
   scrollTl.to(
     currentModel.rotation,
     {
@@ -267,7 +288,6 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  // Modellgröße bei Fensteränderung neu an die Breite anpassen:
   if (currentModel) {
     fitModelToCamera(currentModel);
   }
@@ -411,14 +431,18 @@ function renderTools(el) {
     return;
   }
 
-  if (el.tagName === "IMG") {
+  // Handle Image Wrapper editing
+  if (editType === "image" || el.tagName === "IMG") {
+    const imgEl = el.tagName === "IMG" ? el : el.querySelector("img");
+    const currentSrc = imgEl ? imgEl.src : "";
+
     toolsContainer.innerHTML = `
                 <button class="editor-btn" id="upload-img-btn" title="Lokales Bild hochladen">
                     <span class="material-symbols-outlined">upload_file</span> Hochladen
                 </button>
                 <div class="divider"></div>
                 <span class="material-symbols-outlined" style="color: #a3a3a3; padding: 0 4px;">image</span>
-                <input type="text" class="tool-input" style="width: 220px;" placeholder="Bild-URL..." value="${el.src}" id="img-url-input">
+                <input type="text" class="tool-input" style="width: 220px;" placeholder="Bild-URL..." value="${currentSrc}" id="img-url-input">
             `;
 
     toolsContainer
@@ -427,10 +451,10 @@ function renderTools(el) {
         fileInput.accept = "image/*";
         fileInput.onchange = (e) => {
           const file = e.target.files[0];
-          if (file) {
+          if (file && imgEl) {
             const reader = new FileReader();
             reader.onload = function (event) {
-              el.src = event.target.result;
+              imgEl.src = event.target.result;
               document.getElementById("img-url-input").value =
                 "Lokal: " + file.name;
             };
@@ -443,7 +467,7 @@ function renderTools(el) {
     toolsContainer
       .querySelector("#img-url-input")
       .addEventListener("change", (e) => {
-        el.src = e.target.value;
+        if (imgEl) imgEl.src = e.target.value;
       });
     return;
   }
